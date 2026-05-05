@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NGR Financial Architect — Master en Flujo de Caja para Software</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN TOKENS — Dark Dev Mode
+═══════════════════════════════════════════════════════ */
+:root {
+  --bg:       #0d1117;
+  --bg2:      #161b22;
+  --bg3:      #21262d;
+  --bgc:      #1c2128;
+  --bdr:      #30363d;
+  --bdrb:     #484f58;
+  --tx:       #e6edf3;
+  --tx2:      #8b949e;
+  --txm:      #6e7681;
+  --gn:       #3fb950;   /* green neon  */
+  --gnd:      #238636;   /* green dim   */
+  --gns:      rgba(63,185,80,.12);
+  --bl:       #58a6ff;   /* electric blue */
+  --bld:      #1f6feb;
+  --bls:      rgba(88,166,255,.1);
+  --yl:       #e3b341;   /* amber        */
+  --yls:      rgba(227,179,65,.1);
+  --rd:       #f85149;   /* red alert    */
+  --rds:      rgba(248,81,73,.1);
+  --pu:       #bc8cff;   /* purple       */
+  --pus:      rgba(188,140,255,.1);
+  --or:       #ffa657;   /* orange       */
+  --ors:      rgba(255,166,87,.1);
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+  --font-display: 'Orbitron', sans-serif;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+  --shadow-gn: 0 0 20px rgba(63,185,80,.15);
+  --shadow-bl: 0 0 20px rgba(88,166,255,.15);
+}
+
+/* ── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bdrb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--tx2); }
+
+/* ── KEYFRAMES ────────────────────────────────────────── */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:translateY(0) } }
+@keyframes fadeIn   { from { opacity:0 } to { opacity:1 } }
+@keyframes scanline { 0% { top:-10% } 100% { top:110% } }
+@keyframes blink    { 0%,100% { opacity:1 } 50% { opacity:0 } }
+@keyframes spin     { to { transform: rotate(360deg) } }
+@keyframes glow-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(63,185,80,.3) } 50% { box-shadow: 0 0 18px 4px rgba(63,185,80,.15) } }
+@keyframes slide-in-left { from { opacity:0; transform:translateX(-20px) } to { opacity:1; transform:translateX(0) } }
+
+.fade-up   { animation: fadeUp   .45s cubic-bezier(.22,.61,.36,1) forwards; }
+.fade-in   { animation: fadeIn   .3s ease forwards; }
+
+/* ── TOPBAR ───────────────────────────────────────────── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+  background: rgba(22,27,34,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--bdr);
+  height: 50px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 20px;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 10px; font-weight: 700;
+  color: var(--gn);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  text-shadow: 0 0 12px rgba(63,185,80,.5);
+}
+
+.logo span { color: var(--tx2); }
+
+.prog-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
+.prog-track {
+  flex: 1; height: 4px;
+  background: var(--bg3);
+  border-radius: 2px; overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gnd), var(--gn));
+  border-radius: 2px;
+  transition: width .6s cubic-bezier(.22,.61,.36,1);
+  box-shadow: 0 0 8px var(--gn);
+}
+.prog-pct { font-size: 10px; color: var(--txm); white-space: nowrap; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+}
+.badge-gn  { background: var(--gns);  color: var(--gn);  border: 1px solid var(--gnd); }
+.badge-bl  { background: var(--bls);  color: var(--bl);  border: 1px solid var(--bld); }
+.badge-yl  { background: var(--yls);  color: var(--yl);  border: 1px solid var(--yl); }
+.badge-pu  { background: var(--pus);  color: var(--pu);  border: 1px solid #7c5db0; }
+.badge-rd  { background: var(--rds);  color: var(--rd);  border: 1px solid var(--rd); }
+.badge-or  { background: var(--ors);  color: var(--or);  border: 1px solid var(--or); }
+
+/* ── LAYOUT ───────────────────────────────────────────── */
+#app { display: flex; padding-top: 50px; min-height: 100vh; }
+
+/* ── SIDEBAR ──────────────────────────────────────────── */
+#sidebar {
+  width: 210px; min-width: 210px;
+  background: var(--bg2);
+  border-right: 1px solid var(--bdr);
+  position: sticky; top: 50px;
+  height: calc(100vh - 50px);
+  overflow-y: auto; overflow-x: hidden;
+  padding: 16px 8px;
+  flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.sidebar-section {
+  font-size: 9px; color: var(--txm);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  padding: 14px 10px 6px;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  cursor: pointer; user-select: none;
+  font-size: 11px; color: var(--tx2);
+  border: 1px solid transparent;
+  transition: all .2s ease;
+  position: relative;
+}
+.nav-item:hover { background: var(--bg3); color: var(--tx); }
+.nav-item.active {
+  background: rgba(63,185,80,.07);
+  color: var(--gn);
+  border-color: rgba(63,185,80,.2);
+}
+.nav-item.done { color: var(--gnd); }
+.nav-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--bdr); flex-shrink: 0;
+  transition: all .2s;
+}
+.nav-item.active .nav-dot {
+  background: var(--gn);
+  box-shadow: 0 0 6px var(--gn);
+}
+.nav-item.done .nav-dot { background: var(--gnd); }
+
+.sidebar-params {
+  margin-top: auto;
+  background: var(--bg3);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 8px 4px 4px;
+}
+.param-row {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--txm);
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(48,54,61,.5);
+}
+.param-row:last-child { border-bottom: none; }
+.param-row span:last-child { color: var(--tx2); }
+
+/* ── MAIN CONTENT ─────────────────────────────────────── */
+#main {
+  flex: 1; padding: 22px;
+  overflow-x: hidden;
+  max-width: 920px;
+}
+
+/* ── CARDS ────────────────────────────────────────────── */
+.card {
+  background: var(--bgc);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--bl), transparent);
+  opacity: .3;
+}
+.card-inner {
+  background: var(--bg3);
+  border: 1px solid var(--bdrb);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.card-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 18px;
+}
+.card-icon { font-size: 22px; flex-shrink: 0; line-height: 1; }
+.card-title {
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 700;
+  color: var(--bl); letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.card-sub { font-size: 10px; color: var(--txm); margin-top: 3px; }
+
+/* ── STAT GRID ────────────────────────────────────────── */
+.sg { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.sc {
+  background: var(--bg3); border: 1px solid var(--bdr);
+  border-radius: var(--radius); padding: 13px;
+  transition: border-color .2s, transform .15s;
+}
+.sc:hover { border-color: var(--bdrb); transform: translateY(-1px); }
+.sc-label { font-size: 9px; color: var(--txm); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+.sc-value { font-size: 17px; font-weight: 700; line-height: 1.2; }
+.sc-note  { font-size: 9px; color: var(--txm); margin-top: 4px; }
+.c-gn { color: var(--gn); } .c-bl { color: var(--bl); }
+.c-yl { color: var(--yl); } .c-rd { color: var(--rd); }
+.c-pu { color: var(--pu); } .c-or { color: var(--or); }
+
+/* ── CODE BLOCK ───────────────────────────────────────── */
+.cb {
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  border-left: 3px solid var(--bl);
+  border-radius: var(--radius);
+  padding: 15px;
+  font-size: 11px; color: var(--tx2);
+  line-height: 2; margin: 12px 0;
+  position: relative; overflow-x: auto;
+}
+.cb::before {
+  content: 'TS';
+  position: absolute; top: 6px; right: 10px;
+  font-size: 9px; color: var(--txm);
+  font-family: var(--font-display);
+}
+.kw  { color: var(--pu); }
+.val { color: var(--gn); }
+.cmt { color: var(--txm); font-style: italic; }
+.op  { color: var(--bl); }
+.str { color: var(--or); }
+
+/* ── DATA TABLE ───────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; margin: 12px 0; border-radius: var(--radius); border: 1px solid var(--bdr); }
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 11px;
+}
+thead th {
+  background: var(--bg3); color: var(--txm);
+  padding: 8px 11px; text-align: right;
+  border-bottom: 2px solid var(--bdr);
+  font-size: 9px; text-transform: uppercase; letter-spacing: .5px;
+  white-space: nowrap; font-weight: 500;
+}
+thead th:first-child { text-align: left; }
+tbody td {
+  padding: 7px 11px; text-align: right;
+  border-bottom: 1px solid rgba(48,54,61,.6);
+  white-space: nowrap;
+}
+tbody td:first-child { text-align: left; color: var(--tx2); }
+tbody tr:hover { background: rgba(255,255,255,.02); }
+tbody tr:last-child td { border-bottom: none; }
+.row-pos td { background: rgba(63,185,80,.03); }
+.row-hl  td { background: rgba(88,166,255,.04); font-weight: 600; }
+.row-sh  td { background: var(--bg3); color: var(--txm); font-size: 9px; text-transform: uppercase; letter-spacing: .8px; padding: 5px 11px; }
+.row-tot td { border-top: 2px solid var(--bdrb) !important; font-weight: 700; }
+.pos { color: var(--gn); } .neg { color: var(--rd); } .muted { color: var(--txm); }
+
+/* ── NOTES ────────────────────────────────────────────── */
+.note, .warn, .ok-note, .danger-note {
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 11px; line-height: 1.7; margin: 10px 0;
+}
+.note   { background: var(--bls); border: 1px solid rgba(88,166,255,.3); color: var(--bl); }
+.warn   { background: var(--yls); border: 1px solid rgba(227,179,65,.3); color: var(--yl); }
+.ok-note   { background: var(--gns); border: 1px solid rgba(63,185,80,.3); color: var(--gn); }
+.danger-note { background: var(--rds); border: 1px solid rgba(248,81,73,.3); color: var(--rd); }
+
+/* ── INPUTS ───────────────────────────────────────────── */
+.input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.input-label { font-size: 10px; color: var(--tx2); min-width: 200px; }
+
+input[type="number"],
+input[type="text"] {
+  background: var(--bg3);
+  border: 1px solid var(--bdr);
+  color: var(--tx);
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: border-color .2s, box-shadow .2s;
+  outline: none;
+}
+input[type="number"]:focus,
+input[type="text"]:focus {
+  border-color: var(--bl);
+  box-shadow: 0 0 0 3px rgba(88,166,255,.12);
+}
+input[type="number"].inp-sm { width: 75px; text-align: center; }
+input[type="number"].inp-md { width: 130px; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  height: 4px; border-radius: 2px;
+  background: var(--bg3); outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--gn); cursor: pointer;
+  box-shadow: 0 0 6px rgba(63,185,80,.5);
+  transition: transform .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+/* ── BUTTONS ──────────────────────────────────────────── */
+.btn {
+  padding: 8px 18px; border-radius: var(--radius);
+  border: none; cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .4px;
+  transition: all .2s ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:active { transform: scale(.97); }
+.btn-gn { background: var(--gnd); color: var(--tx); }
+.btn-gn:hover { background: var(--gn); color: var(--bg); box-shadow: 0 0 14px rgba(63,185,80,.4); }
+.btn-bl { background: var(--bld); color: white; }
+.btn-bl:hover { background: var(--bl); box-shadow: 0 0 14px rgba(88,166,255,.4); }
+.btn-sec { background: var(--bg3); color: var(--tx2); border: 1px solid var(--bdr); }
+.btn-sec:hover { border-color: var(--bdrb); color: var(--tx); }
+.btn-pu { background: #5a3e8a; color: white; }
+.btn-pu:hover { background: var(--pu); color: var(--bg); box-shadow: 0 0 14px rgba(188,140,255,.4); }
+.btn-rd { background: rgba(248,81,73,.15); color: var(--rd); border: 1px solid rgba(248,81,73,.3); }
+.btn-rd:hover { background: var(--rd); color: white; }
+
+/* ── NAV ACTIONS ──────────────────────────────────────── */
+.nav-actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid var(--bdr);
+}
+
+/* ── SEPARATOR ────────────────────────────────────────── */
+hr { border: none; border-top: 1px solid var(--bdr); margin: 16px 0; }
+
+/* ── CHART WRAPPER ────────────────────────────────────── */
+.chart-wrap {
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  padding: 16px; margin: 12px 0;
+  position: relative;
+}
+.chart-label {
+  font-size: 9px; color: var(--txm);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+/* ── QUIZ ─────────────────────────────────────────────── */
+.quiz-card {
+  background: var(--bg3);
+  border: 1px solid var(--yl);
+  border-radius: var(--radius-lg);
+  padding: 18px; margin-top: 16px;
+}
+.quiz-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.quiz-q { font-size: 12px; color: var(--tx); line-height: 1.7; margin-bottom: 12px; }
+.quiz-opts { display: flex; flex-direction: column; gap: 7px; }
+.quiz-opt {
+  padding: 9px 13px;
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  cursor: pointer; font-size: 11px;
+  color: var(--tx2); background: var(--bgc);
+  text-align: left;
+  transition: all .2s; font-family: var(--font-mono);
+}
+.quiz-opt:hover:not(:disabled) { border-color: var(--bl); color: var(--tx); background: var(--bls); }
+.quiz-opt:disabled { cursor: default; }
+.quiz-opt.cor { border-color: var(--gn); color: var(--gn); background: var(--gns); }
+.quiz-opt.wrg { border-color: var(--rd); color: var(--rd); background: var(--rds); }
+.quiz-fb {
+  margin-top: 10px; padding: 10px 13px;
+  border-radius: var(--radius); font-size: 11px; line-height: 1.6;
+}
+.quiz-fb.ok  { background: var(--gns); color: var(--gn); border: 1px solid rgba(63,185,80,.3); }
+.quiz-fb.err { background: var(--rds); color: var(--rd); border: 1px solid rgba(248,81,73,.3); }
+
+/* ── SCENARIO CARDS ───────────────────────────────────── */
+.scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.scenario-card {
+  background: var(--bg3);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius);
+  padding: 14px; cursor: pointer;
+  transition: all .2s;
+}
+.scenario-card:hover { border-color: var(--bdrb); transform: translateY(-1px); }
+.scenario-card.sel-base    { border-color: var(--gn); background: var(--gns); }
+.scenario-card.sel-pess    { border-color: var(--rd); background: var(--rds); }
+.scenario-card.sel-opt     { border-color: var(--bl); background: var(--bls); }
+.scenario-card.sel-stress  { border-color: var(--yl); background: var(--yls); }
+.sc-icon { font-size: 22px; margin-bottom: 6px; }
+.sc-name { font-size: 12px; font-weight: 700; color: var(--tx); margin-bottom: 4px; }
+.sc-desc { font-size: 10px; color: var(--txm); line-height: 1.5; }
+
+/* ── CRITERIA ROWS ────────────────────────────────────── */
+.criteria-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 0; border-bottom: 1px solid var(--bdr);
+}
+.criteria-row:last-child { border-bottom: none; }
+.criteria-icon { font-size: 16px; flex-shrink: 0; }
+.criteria-info { flex: 1; }
+.criteria-name { font-size: 11px; color: var(--tx); }
+.criteria-desc { font-size: 9px; color: var(--txm); margin-top: 2px; }
+.criteria-val  { font-size: 14px; font-weight: 700; min-width: 130px; text-align: right; }
+.criteria-verdict { min-width: 90px; text-align: right; }
+
+/* ── TERMINAL LINES ───────────────────────────────────── */
+.term { padding: 10px 14px; background: var(--bg); border: 1px solid var(--bdr); border-radius: var(--radius); margin-bottom: 10px; }
+.term-line { display: flex; gap: 8px; font-size: 11px; line-height: 2; }
+.term-p { color: var(--gn); }
+.term-c { color: var(--bl); }
+.term-o { color: var(--tx2); padding-left: 18px; }
+
+/* ── STEP GUIDE ───────────────────────────────────────── */
+.step-guide { display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
+.step-item  { display: flex; align-items: flex-start; gap: 12px; }
+.step-num   {
+  min-width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bld); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.step-text  { font-size: 11px; color: var(--tx2); line-height: 1.7; }
+
+/* ── MODULE HEADER BANNER ─────────────────────────────── */
+.mod-banner {
+  background: linear-gradient(135deg, rgba(22,27,34,1) 0%, rgba(31,37,50,1) 100%);
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius-lg);
+  padding: 22px 22px 18px;
+  margin-bottom: 16px;
+  position: relative; overflow: hidden;
+}
+.mod-banner::after {
+  content: '';
+  position: absolute; top: 0; right: 0;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle at center, rgba(63,185,80,.07), transparent 70%);
+  pointer-events: none;
+}
+.mod-num {
+  font-family: var(--font-display);
+  font-size: 9px; letter-spacing: 3px;
+  color: var(--txm); margin-bottom: 6px;
+}
+.mod-title {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 900;
+  color: var(--tx); letter-spacing: 1px;
+  line-height: 1.2; margin-bottom: 8px;
+}
+.mod-title span { color: var(--gn); }
+.mod-desc { font-size: 11px; color: var(--tx2); line-height: 1.8; max-width: 580px; }
+
+/* ── SUMMARY VERDICT ──────────────────────────────────── */
+.verdict-banner {
+  text-align: center; padding: 28px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  position: relative; overflow: hidden;
+}
+.verdict-banner.viable {
+  background: linear-gradient(135deg, rgba(22,27,34,1), rgba(35,134,54,.1));
+  border: 2px solid var(--gn);
+}
+.verdict-banner.no-viable {
+  background: linear-gradient(135deg, rgba(22,27,34,1), rgba(248,81,73,.1));
+  border: 2px solid var(--rd);
+}
+.verdict-emoji { font-size: 52px; display: block; margin-bottom: 10px; }
+.verdict-text {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 900; letter-spacing: 3px;
+}
+.verdict-sub { font-size: 10px; color: var(--txm); margin-top: 8px; }
+
+/* ── TOGGLE BUTTONS ───────────────────────────────────── */
+.toggle-group { display: flex; gap: 6px; }
+.toggle-btn {
+  padding: 6px 14px; border-radius: 4px;
+  border: 1px solid var(--bdr);
+  background: transparent; color: var(--tx2);
+  font-family: var(--font-mono); font-size: 11px;
+  cursor: pointer; transition: all .2s;
+}
+.toggle-btn.active { background: var(--gnd); color: var(--tx); border-color: var(--gn); }
+.toggle-btn:hover:not(.active) { border-color: var(--bdrb); color: var(--tx); }
+
+/* ── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar { display: none; }
+  .sg { grid-template-columns: 1fr 1fr; }
+  .scenario-grid { grid-template-columns: 1fr; }
+  .mod-title { font-size: 15px; }
+  #main { padding: 14px; }
+}
+@media (max-width: 500px) {
+  .sg { grid-template-columns: 1fr; }
+  thead th, tbody td { padding: 5px 7px; font-size: 10px; }
+}
+
+/* ── PRINT STYLES ─────────────────────────────────────── */
+@media print {
+  #topbar, #sidebar { display: none; }
+  #app { padding-top: 0; }
+  #main { padding: 0; max-width: 100%; }
+  .card { break-inside: avoid; border: 1px solid #ccc; }
+  body { background: white; color: #111; }
+  .quiz-card { display: none; }
+  .nav-actions { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ TOP BAR ═══════════ -->
+<div id="topbar">
+  <div class="logo">NGR<span>∷</span>FINANCIAL<span>∷</span>ARCHITECT</div>
+  <div class="prog-wrap">
+    <div class="prog-track">
+      <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+    <div class="prog-pct" id="prog-pct">0% completado</div>
+  </div>
+  <span class="badge badge-gn" id="mod-badge">0/8 módulos</span>
+</div>
+
+<!-- ═══════════ APP SHELL ═══════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-section">Módulos</div>
+    <!-- nav items injected by JS -->
+    <div id="nav-items"></div>
+
+    <div class="sidebar-section" style="margin-top:8px">Parámetros fijos</div>
+    <div class="sidebar-params">
+      <div class="param-row"><span>Capacidad máx.</span><span class="c-gn">120 proy/año</span></div>
+      <div class="param-row"><span>CVU</span><span class="c-yl">$2.000.000</span></div>
+      <div class="param-row"><span>PVU</span><span class="c-gn">$3.000.000</span></div>
+      <div class="param-row"><span>Margen</span><span class="c-pu">50%</span></div>
+      <div class="param-row"><span>CF anuales</span><span class="c-rd">$25.200.000</span></div>
+      <div class="param-row"><span>WACC</span><span class="c-bl">15%</span></div>
+      <div class="param-row"><span>Impuesto</span><span class="c-rd">27%</span></div>
+      <div class="param-row"><span>Tasa préstamo</span><span class="c-pu">25%</span></div>
+      <div class="param-row"><span>Vida útil</span><span>6 años</span></div>
+      <div class="param-row"><span>Val. residual</span><span>10%</span></div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main id="main"></main>
+
+</div>
+
+<!-- ═══════════ JAVASCRIPT ═══════════ -->
+<script>
+/* ─────────────────────────────────────────────────────
+   CONSTANTS
+───────────────────────────────────────────────────── */
+const CAP      = 120;
+const CV_UNIT  = 2_000_000;
+const MARGIN   = 0.50;
+const PV_UNIT  = CV_UNIT * (1 + MARGIN);   // 3,000,000
+const HW       = 90_000_000;
+const MBL      =  5_000_000;
+const KT       = 20_000_000;
+const KT_REC   = 0.70;
+const LIFE     = 6;
+const RES_PCT  = 0.10;
+const OP_FIXED = 24_000_000;
+const ADM_FIXED =  1_200_000;
+const CF_TOTAL = OP_FIXED + ADM_FIXED;     // 25,200,000
+const TAX      = 0.27;
+const WACC     = 0.15;
+const LOAN_R   = 0.25;
+const DEP_BASE = HW + MBL;                 // 95,000,000
+const RESIDUAL = DEP_BASE * RES_PCT;       //  9,500,000
+const DEP_ANN  = (DEP_BASE - RESIDUAL) / LIFE; // 14,250,000
+const DEP_HW   = (HW  * (1 - RES_PCT)) / LIFE;
+const DEP_MBL  = (MBL * (1 - RES_PCT)) / LIFE;
+
+/* ─────────────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────────────── */
+let state = {
+  module:    0,
+  done:      new Set(),
+  demandPct: [0.5, 0.7, 0.8, 0.9, 1.0],
+  withLoan:  true,
+  loanPct:   100,
+  scenario:  'base',
+  quizAnswers: {}  // modId -> answerIndex
+};
+
+/* ─────────────────────────────────────────────────────
+   FORMATTERS
+───────────────────────────────────────────────────── */
+const fmt = (n, dec = 0) => {
+  if (n === null || n === undefined) return '—';
+  const abs = Math.abs(n).toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (n < 0 ? '-' : '') + '$' + abs;
+};
+const fmtM = n => fmt(n / 1e6, 1) + 'M';
+const fmtPct = n => (n * 100).toFixed(1) + '%';
+const u = i => Math.round(CAP * state.demandPct[i]);   // units for year i+1
+
+/* ─────────────────────────────────────────────────────
+   CASH FLOW ENGINE
+───────────────────────────────────────────────────── */
+function calcCF(pcts = state.demandPct, withLoan = false, loanAmt = 0) {
+  // French amortization
+  let schedule = [];
+  if (withLoan && loanAmt > 0) {
+    const r = LOAN_R, n = 5;
+    const installment = loanAmt * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    let bal = loanAmt;
+    for (let i = 0; i < n; i++) {
+      const interest   = bal * r;
+      const principal  = installment - interest;
+      const newBal     = bal - principal;
+      schedule.push({ interest, principal, installment, balance: newBal });
+      bal = newBal;
+    }
+  }
+
+  const rows = [];
+
+  // Year 0
+  rows.push({
+    yr: 0, units: 0, rev: 0, cv: 0, cfixed: 0,
+    dep: 0, adi: 0, tax: 0, net: 0,
+    invHw: -HW, invMbl: -MBL, kt: -KT,
+    gnd: 0, interest: 0, principal: 0, loanIn: withLoan ? loanAmt : 0,
+    fc: -(HW + MBL + KT) + (withLoan ? loanAmt : 0),
+    fca: 0
+  });
+  rows[0].fca = rows[0].fc;
+
+  for (let i = 1; i <= 5; i++) {
+    const units  = Math.round(CAP * pcts[i - 1]);
+    const rev    = units * PV_UNIT;
+    const cv     = -units * CV_UNIT;
+    const cfixed = -CF_TOTAL;
+    const dep    = -DEP_ANN;
+    const adi    = rev + cv + cfixed + dep;
+    const tax    = adi > 0 ? -(adi * TAX) : 0;
+    const net    = adi + tax;
+    const gnd    = DEP_ANN;
+    const int_   = withLoan && schedule[i - 1] ? -schedule[i - 1].interest   : 0;
+    const prin   = withLoan && schedule[i - 1] ? -schedule[i - 1].principal  : 0;
+    const invHw  = i === 5 ? HW  * RES_PCT : 0;
+    const invMbl = i === 5 ? MBL * RES_PCT : 0;
+    const ktRec  = i === 5 ? KT  * KT_REC  : 0;
+    const fc     = net + gnd + (i === 5 ? invHw + invMbl + ktRec : 0) + int_ + prin;
+    const fca    = (rows[i - 1].fca || 0) + fc;
+    rows.push({
+      yr: i, units, rev, cv, cfixed, dep, adi, tax, net,
+      gnd, interest: int_, principal: prin, loanIn: 0,
+      invHw, invMbl, ktRec, fc, fca,
+      amort: schedule[i - 1] || null
+    });
+  }
+  return rows;
+}
+
+function npv(flows, r) {
+  return flows.reduce((s, v, i) => s + v / Math.pow(1 + r, i), 0);
+}
+function irr(flows) {
+  let lo = -0.99, hi = 10, mid;
+  for (let k = 0; k < 200; k++) {
+    mid = (lo + hi) / 2;
+    const v = npv(flows, mid);
+    if (Math.abs(v) < 0.5) break;
+    v > 0 ? lo = mid : hi = mid;
+  }
+  return mid;
+}
+function payback(rows) {
+  return rows.findIndex(r => r.fca >= 0);
+}
+
+/* ─────────────────────────────────────────────────────
+   HELPERS — HTML builders
+───────────────────────────────────────────────────── */
+const el = (tag, cls, html = '') => `<${tag} class="${cls}">${html}</${tag}>`;
+const div = (cls, html) => el('div', cls, html);
+
+function statCard(label, value, cls, note = '') {
+  return `<div class="sc"><div class="sc-label">${label}</div>
+    <div class="sc-value ${cls}">${value}</div>
+    ${note ? `<div class="sc-note">${note}</div>` : ''}
+  </div>`;
+}
+
+function codeBlock(lines) {
+  return `<div class="cb">${lines.join('\n')}</div>`;
+}
+
+function noteBox(type, text) {
+  return `<div class="${type}">${text}</div>`;
+}
+
+function quizHTML(modId, question, opts, correct, explanation) {
+  const prev = state.quizAnswers[modId];
+  const optHtml = opts.map((o, i) => {
+    let cls = 'quiz-opt';
+    if (prev !== undefined) {
+      cls += i === correct ? ' cor' : (i === prev ? ' wrg' : '');
+    }
+    return `<button class="${cls}" onclick="answerQuiz(${modId},${i},${correct})" ${prev !== undefined ? 'disabled' : ''}>${String.fromCharCode(65 + i)}. ${o}</button>`;
+  }).join('');
+
+  const fb = prev !== undefined
+    ? `<div class="quiz-fb ${prev === correct ? 'ok' : 'err'}">${prev === correct ? '✅ ¡Correcto! ' : '❌ Incorrecto. '}${explanation}</div>`
+    : '';
+
+  return `<div class="quiz-card">
+    <div class="quiz-header">
+      <span class="badge badge-yl">🎯 CHALLENGE YOURSELF</span>
+      <span style="font-size:9px;color:var(--txm)">Módulo ${String(modId + 1).padStart(2, '0')}</span>
+    </div>
+    <div class="quiz-q">${question}</div>
+    <div class="quiz-opts">${optHtml}</div>
+    ${fb}
+  </div>`;
+}
+
+function navActions(showPrev = true, showNext = true, nextLabel = 'Siguiente →', nextMod = null) {
+  const nm = nextMod !== null ? nextMod : state.module + 1;
+  const prevBtn = showPrev ? `<button class="btn btn-sec" onclick="goTo(${state.module - 1})">← Anterior</button>` : '';
+  const nextBtn = showNext ? `<button class="btn btn-gn" onclick="goTo(${nm})">${nextLabel}</button>` : '';
+  return `<div class="nav-actions">${prevBtn}${nextBtn}</div>`;
+}
+
+/* ─────────────────────────────────────────────────────
+   CHART REGISTRY (destroy before re-create)
+───────────────────────────────────────────────────── */
+const charts = {};
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+function mkChart(id, config) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+
+const chartDefaults = {
+  color: '#8b949e',
+  font: { family: "'JetBrains Mono', monospace", size: 10 },
+  grid: 'rgba(48,54,61,.7)'
+};
+function axisStyle(yLabel = '') {
+  return {
+    x: { ticks: { color: chartDefaults.color, font: chartDefaults.font }, grid: { color: chartDefaults.grid } },
+    y: { ticks: { color: chartDefaults.color, font: chartDefaults.font, callback: v => `$${v}M` }, grid: { color: chartDefaults.grid }, title: { display: !!yLabel, text: yLabel, color: chartDefaults.color } }
+  };
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE DEFINITIONS
+───────────────────────────────────────────────────── */
+const MODULES = [
+  { id: 0, icon: '⚡', label: '01 Escenario',     short: 'Escenario'    },
+  { id: 1, icon: '🖥',  label: '02 Inversión',     short: 'Inversión'    },
+  { id: 2, icon: '💰', label: '03 Ingresos',      short: 'Ingresos'     },
+  { id: 3, icon: '📉', label: '04 Depreciación',  short: 'Depreciación' },
+  { id: 4, icon: '📊', label: '05 Flujo de Caja', short: 'Flujo de Caja'},
+  { id: 5, icon: '🏦', label: '06 Préstamo',      short: 'Préstamo'     },
+  { id: 6, icon: '🎛', label: '07 Sensibilidad',  short: 'Sensibilidad' },
+  { id: 7, icon: '🎓', label: '08 Resumen',       short: 'Resumen'      },
+];
+
+/* ─────────────────────────────────────────────────────
+   RENDER SIDEBAR
+───────────────────────────────────────────────────── */
+function renderSidebar() {
+  const nav = document.getElementById('nav-items');
+  if (!nav) return;
+  nav.innerHTML = MODULES.map(m => {
+    const active = m.id === state.module;
+    const done   = state.done.has(m.id) && !active;
+    let cls = 'nav-item';
+    if (active) cls += ' active';
+    if (done)   cls += ' done';
+    return `<div class="${cls}" onclick="goTo(${m.id})">
+      <div class="nav-dot"></div>
+      <span>${done ? '✓ ' : ''}${m.icon} ${m.label}</span>
+    </div>`;
+  }).join('');
+
+  // progress
+  const pct = Math.round((state.done.size / MODULES.length) * 100);
+  const fill = document.getElementById('prog-fill');
+  const pctLbl = document.getElementById('prog-pct');
+  const modBadge = document.getElementById('mod-badge');
+  if (fill) fill.style.width = pct + '%';
+  if (pctLbl) pctLbl.textContent = pct + '% completado';
+  if (modBadge) modBadge.textContent = `${state.done.size}/8 módulos`;
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 0 — SCENARIO
+───────────────────────────────────────────────────── */
+function renderMod0() {
+  const units = state.demandPct.map(p => Math.round(CAP * p));
+  const revs  = units.map(u => u * PV_UNIT);
+  const cvs   = units.map(u => u * CV_UNIT);
+
+  const demandRows = `
+    <tr>
+      <td>% Capacidad</td>
+      ${state.demandPct.map((p, i) => `
+        <td><input type="number" class="inp-sm" value="${Math.round(p * 100)}" min="10" max="100"
+          onchange="updateDemand(${i}, this.value)"> %</td>`).join('')}
+    </tr>
+    <tr class="row-hl">
+      <td>Proyectos / año</td>
+      ${units.map(u => `<td class="pos">${u}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>Ingresos (PV × Q)</td>
+      ${revs.map(r => `<td class="c-bl">${fmtM(r)}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>Costos Variables</td>
+      ${cvs.map(c => `<td class="neg">${fmtM(-c)}</td>`).join('')}
+    </tr>`;
+
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 01 / 08</div>
+    <div class="mod-title">El <span>Escenario</span></div>
+    <div class="mod-desc">NGR S.A. analiza una nueva unidad de negocio: <strong>Implementación de Proyectos Tecnológicos</strong>. Explora la proyección de demanda a 5 años y edita los porcentajes para ver el impacto en tiempo real en todos los módulos.</div>
+  </div>
+
+  <div class="card fade-up">
+    <div class="card-header">
+      <div class="card-icon">⚡</div>
+      <div><div class="card-title">Capacidad & Demanda Proyectada</div>
+        <div class="card-sub">Tabla Nº1 — Edita los % para actualizar toda la aplicación en tiempo real</div></div>
+    </div>
+
+    <div class="term">
+      <div class="term-line"><span class="term-p">›</span><span class="term-c">const</span>&nbsp;capacidadMaxima = <span style="color:var(--gn)">120</span> <span style="color:var(--txm)">// proyectos/año</span></div>
+      <div class="term-line"><span class="term-p">›</span><span class="term-c">const</span>&nbsp;horizonteEval = <span style="color:var(--gn)">5</span> <span style="color:var(--txm)">// años</span></div>
+      <div class="term-line"><span class="term-p">›</span><span style="color:var(--tx2)">Cargando tabla de demanda...</span>&nbsp;<span style="color:var(--gn)">✓ OK</span></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Parámetro</th>
+            <th>Año 1</th><th>Año 2</th><th>Año 3</th><th>Año 4</th><th>Año 5</th>
+          </tr>
+        </thead>
+        <tbody>${demandRows}</tbody>
+      </table>
+    </div>
+
+    <div class="sg">
+      ${statCard('Capacidad Máxima',    '120 proy/año', 'c-bl')}
+      ${statCard('Precio Venta Unit.',  fmt(PV_UNIT), 'c-gn', 'CVU × 1.5')}
+      ${statCard('Costo Variable Unit.',fmt(CV_UNIT), 'c-yl')}
+      ${statCard('Margen Unitario',     fmt(PV_UNIT - CV_UNIT), 'c-pu', 'por proyecto')}
+    </div>
+
+    ${noteBox('note', '💡 <strong>Instrucción:</strong> Modifica los porcentajes de la Tabla Nº1 y observa cómo cambian los ingresos, costos, el flujo de caja y el VAN en todos los módulos siguientes. Esto replica el análisis de sensibilidad de demanda.')}
+
+    ${quizHTML(0,
+      '¿Cuántos proyectos reales se venderán en el Año 3 si la capacidad máxima es 120?',
+      ['72 proyectos', '84 proyectos', '96 proyectos', '108 proyectos'],
+      2,
+      'Año 3 = 80% × 120 = 96 proyectos. El estudio de demanda indica un 80% en el tercer año.'
+    )}
+
+    ${navActions(false, true, 'Siguiente: Inversión →')}
+  </div>`;
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 1 — INVESTMENT
+───────────────────────────────────────────────────── */
+function renderMod1() {
+  const total = HW + MBL + KT;
+  const loanBase = HW + KT;
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 02 / 08</div>
+    <div class="mod-title">Inversión <span>Inicial</span></div>
+    <div class="mod-desc">Identifica y cuantifica todos los ítems de inversión previos a la puesta en marcha: hardware, muebles y capital de trabajo. Comprende el concepto de vida útil y valor residual.</div>
+  </div>
+
+  <div class="card fade-up">
+    <div class="card-header">
+      <div class="card-icon">🖥</div>
+      <div><div class="card-title">Estructura de Inversión — Año 0</div>
+        <div class="card-sub">Desembolso previo a la operación</div></div>
+    </div>
+
+    <div class="sg">
+      ${statCard('🖥 Hardware (Equipos)', fmt(HW), 'c-bl', 'Vida útil: 6 años · VR 10%')}
+      ${statCard('🪑 Muebles y Mobiliario', fmt(MBL), 'c-pu', 'Vida útil: 6 años · VR 10%')}
+      ${statCard('💼 Capital de Trabajo', fmt(KT), 'c-yl', 'Recuperación: 70% en año 5')}
+      ${statCard('📌 INVERSIÓN TOTAL', fmt(total), 'c-gn', 'Desembolso Año 0')}
+    </div>
+
+    ${codeBlock([
+      `<span class="cmt">// Estructura de Inversión — NGR S.A.</span>`,
+      `<span class="kw">const</span> <span class="op">inversion</span> = {`,
+      `&nbsp;&nbsp;<span class="op">hardware</span>:       <span class="val">${fmt(HW)}</span>,  <span class="cmt">// equipos de cómputo y servidores</span>`,
+      `&nbsp;&nbsp;<span class="op">muebles</span>:        <span class="val">${fmt(MBL)}</span>,   <span class="cmt">// mobiliario de oficina</span>`,
+      `&nbsp;&nbsp;<span class="op">capitalTrabajo</span>: <span class="val">${fmt(KT)}</span>,   <span class="cmt">// ciclo productivo</span>`,
+      `}`,
+      ``,
+      `<span class="kw">const</span> <span class="op">totalInversion</span>      = <span class="val">${fmt(total)}</span>`,
+      `<span class="kw">const</span> <span class="op">prestamoDisponible</span>  = HW + KT = <span class="val">${fmt(loanBase)}</span>  <span class="cmt">// tasa 25% anual</span>`,
+    ])}
+
+    <div class="card-inner">
+      <div class="card-title" style="margin-bottom:12px">¿Qué es la Vida Útil y el Valor Residual?</div>
+      <div class="step-guide">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Vida Útil (6 años):</strong> Tiempo estimado durante el cual el activo genera valor económico para la empresa. Después de este período, se considera obsoleto técnica o económicamente.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Valor Residual (10%):</strong> Monto estimado que se puede recuperar al vender o desechar el activo al final de su vida útil. Es el <em>piso de valor</em> que no se deprecia. Para NGR S.A.: ${fmt(RESIDUAL)}</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Base Depreciable:</strong> Valor original − Valor Residual = ${fmt(DEP_BASE)} − ${fmt(RESIDUAL)} = <span class="c-gn" style="font-weight:700">${fmt(DEP_BASE - RESIDUAL)}</span></div>
+        </div>
+      </div>
+    </div>
+
+    ${noteBox('warn', `⚠️ El préstamo bancario cubre únicamente <strong>Hardware + Capital de Trabajo = ${fmt(loanBase)}</strong> a una tasa del 25% anual. Los muebles se financian con capital propio. El Módulo 06 simula el impacto de este financiamiento en el flujo de caja.`)}
+
+    ${quizHTML(1,
+      '¿Cuál es el monto total de la inversión inicial del proyecto (Año 0)?',
+      [fmt(HW + MBL), fmt(HW + KT), fmt(HW + MBL + KT), fmt(KT + MBL)],
+      2,
+      `Hardware ${fmt(HW)} + Muebles ${fmt(MBL)} + Capital de Trabajo ${fmt(KT)} = ${fmt(HW + MBL + KT)}.`
+    )}
+
+    ${navActions(true, true, 'Siguiente: Ingresos →')}
+  </div>`;
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 2 — REVENUES & COSTS
+───────────────────────────────────────────────────── */
+function renderMod2() {
+  const units = state.demandPct.map(p => Math.round(CAP * p));
+  const revs  = units.map(u => u * PV_UNIT);
+  const cvs   = units.map(u => u * CV_UNIT);
+  const margen = revs.map((r, i) => r - cvs[i] - CF_TOTAL);
+
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 03 / 08</div>
+    <div class="mod-title">Ingresos <span>y Costos</span></div>
+    <div class="mod-desc">Simula los ingresos por venta basados en el margen del 50% sobre el CVU. Comprende la estructura de costos fijos y variables que determina la rentabilidad operacional del proyecto.</div>
+  </div>
+
+  <div class="card fade-up">
+    <div class="card-header">
+      <div class="card-icon">💰</div>
+      <div><div class="card-title">Simulador de Precio de Venta</div>
+        <div class="card-sub">Margen 50% sobre Costo Variable Unitario</div></div>
+    </div>
+
+    ${codeBlock([
+      `<span class="cmt">// Cálculo del Precio de Venta Unitario</span>`,
+      `<span class="kw">const</span> <span class="op">cvu</span>    = <span class="val">${fmt(CV_UNIT)}</span>   <span class="cmt">// costo variable por proyecto</span>`,
+      `<span class="kw">const</span> <span class="op">margen</span> = <span class="val">0.50</span>           <span class="cmt">// 50% sobre CVU</span>`,
+      `<span class="kw">const</span> <span class="op">pvu</span>    = cvu × (1 + margen) = <span class="val">${fmt(PV_UNIT)}</span>`,
+      ``,
+      `<span class="cmt">// Costos Fijos Anuales (constantes en todos los años)</span>`,
+      `<span class="kw">const</span> <span class="op">cfOperacion</span>    = <span class="val">${fmt(OP_FIXED)}</span>  <span class="cmt">// gastos de operación</span>`,
+      `<span class="kw">const</span> <span class="op">cfAdministrativo</span> = <span class="val">${fmt(ADM_FIXED)}</span>   <span class="cmt">// arriendo, agua, luz, internet</span>`,
+      `<span class="kw">const</span> <span class="op">cfTotal</span>          = <span class="val">${fmt(CF_TOTAL)}</span>  <span class="cmt">// total CF anuales</span>`,
+    ])}
+
+    <div class="sg">
+      ${statCard('CVU (costo unit.)',    fmt(CV_UNIT), 'c-yl')}
+      ${statCard('PVU (precio unit.)',   fmt(PV_UNIT), 'c-gn')}
+      ${statCard('Margen contribución',  fmt(PV_UNIT - CV_UNIT), 'c-pu', 'por proyecto')}
+      ${statCard('CF Totales anuales',   fmt(CF_TOTAL), 'c-rd', 'constantes 5 años')}
+    </div>
+
+    <div class="card-title" style="margin-bottom:12px">Proyección de Ingresos y Costos (5 Años)</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th style="text-align:left">Ítem</th>
+          <th>Año 1</th><th>Año 2</th><th>Año 3</th><th>Año 4</th><th>Año 5</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>(+) Proyectos vendidos</td>
+            ${units.map(u => `<td class="pos">${u}</td>`).join('')}</tr>
+          <tr class="row-hl"><td>(+) Ingresos por venta</td>
+            ${revs.map(r => `<td class="pos">${fmtM(r)}</td>`).join('')}</tr>
+          <tr><td>(−) Costos variables</td>
+            ${cvs.map(c => `<td class="neg">${fmtM(-c)}</td>`).join('')}</tr>
+          <tr><td>(−) Costos fijos totales</td>
+            ${[0,0,0,0,0].map(() => `<td class="neg">${fmtM(-CF_TOTAL)}</td>`).join('')}</tr>
+          <tr class="row-tot row-pos"><td>= Margen antes depreciación</td>
+            ${margen.map(m => `<td style="color:${m >= 0 ? 'var(--gn)' : 'var(--rd)'}">${fmtM(m)}</td>`).join('')}</tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-label">Ingresos vs. Costos Totales por Año (en millones $CLP)</div>
+      <div style="height:200px"><canvas id="chart-rev"></canvas></div>
+    </div>
+
+    ${noteBox('ok-note', `✅ El <strong>margen de contribución unitario</strong> es ${fmt(PV_UNIT - CV_UNIT)} por proyecto. Esto significa que cada proyecto vendido aporta ese monto para cubrir los costos fijos de ${fmt(CF_TOTAL)}/año y generar utilidad.`)}
+
+    ${quizHTML(2,
+      '¿Cuál es el ingreso total por ventas en el Año 5 (100% de capacidad)?',
+      ['$300.000.000', '$320.000.000', '$360.000.000', '$380.000.000'],
+      2,
+      '120 proyectos × $3.000.000 = $360.000.000 en el Año 5.'
+    )}
+
+    ${navActions(true, true, 'Siguiente: Depreciación →')}
+  </div>`;
+}
+
+function initChartMod2() {
+  const units = state.demandPct.map(p => Math.round(CAP * p));
+  const revs  = units.map(u => u / 1e6 * PV_UNIT);
+  const cvs   = units.map(u => u / 1e6 * CV_UNIT);
+  const cf    = Array(5).fill(CF_TOTAL / 1e6);
+  const labels = ['Año 1','Año 2','Año 3','Año 4','Año 5'];
+  mkChart('chart-rev', {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Ingresos', data: revs, backgroundColor: 'rgba(63,185,80,.55)', borderColor: '#3fb950', borderWidth: 1 },
+      { label: 'Costos Variables', data: cvs, backgroundColor: 'rgba(248,81,73,.45)', borderColor: '#f85149', borderWidth: 1 },
+      { label: 'Costos Fijos', data: cf, backgroundColor: 'rgba(227,179,65,.45)', borderColor: '#e3b341', borderWidth: 1 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8b949e', font: { family: "'JetBrains Mono',monospace", size: 10 } } } },
+      scales: axisStyle() }
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 3 — DEPRECIATION
+───────────────────────────────────────────────────── */
+function renderMod3() {
+  const rows = [];
+  for (let y = 1; y <= 6; y++) {
+    rows.push({
+      y, dep: DEP_ANN, cum: DEP_ANN * y,
+      book: DEP_BASE - DEP_ANN * y
+    });
+  }
+  const depRows = rows.map(r => `
+    <tr class="${r.y === 5 ? 'row-hl' : ''}">
+      <td>Año ${r.y}${r.y === 5 ? ' ← fin horizonte eval.' : r.y === 6 ? ' ← fin vida útil' : ''}</td>
+      <td class="neg">${fmt(-r.dep)}</td>
+      <td class="neg">${fmt(-r.cum)}</td>
+      <td class="${r.book > 0 ? 'pos' : ''}">${fmt(r.book)}</td>
+      <td class="muted" style="font-size:9px">${r.y === 5 ? `VL recuperado al vender: ${fmt(r.book)}` : ''}</td>
+    </tr>`).join('');
+
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 04 / 08</div>
+    <div class="mod-title">Depreciación & <span>Escudo Fiscal</span></div>
+    <div class="mod-desc">Aplica el método de línea recta para distribuir el costo de los activos. Comprende cómo la depreciación, como gasto no desembolsable, genera un escudo fiscal que impacta positivamente el flujo de caja.</div>
+  </div>
+
+  <div class="card fade-up">
+    <div class="card-header">
+      <div class="card-icon">📉</div>
+      <div><div class="card-title">Método de Línea Recta</div>
+        <div class="card-sub">Valor residual 10% · Vida útil 6 años · HW + Muebles</div></div>
+    </div>
+
+    <div class="step-guide">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>Identificar activos depreciables:</strong> Hardware ${fmt(HW)} + Muebles ${fmt(MBL)} = <span class="c-bl">${fmt(DEP_BASE)}</span></div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Calcular Valor Residual (10%):</strong> ${fmt(DEP_BASE)} × 10% = <span class="c-yl">${fmt(RESIDUAL)}</span></div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Base Depreciable:</strong> ${fmt(DEP_BASE)} − ${fmt(RESIDUAL)} = <span class="c-bl">${fmt(DEP_BASE - RESIDUAL)}</span></div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-text"><strong>Depreciación Anual:</strong> ${fmt(DEP_BASE - RESIDUAL)} ÷ 6 años = <span class="c-gn" style="font-weight:700">${fmt(DEP_ANN)}/año</span></div>
+      </div>
+    </div>
+
+    ${codeBlock([
+      `<span class="cmt">// Método Línea Recta — Straight-Line Depreciation</span>`,
+      `<span class="kw">const</span> <span class="op">base</span>          = HW + Muebles = <span class="val">${fmt(DEP_BASE)}</span>`,
+      `<span class="kw">const</span> <span class="op">valorResidual</span> = base × 10%   = <span class="val">${fmt(RESIDUAL)}</span>`,
+      `<span class="kw">const</span> <span class="op">baseDeprec</span>    = base − VR    = <span class="val">${fmt(DEP_BASE - RESIDUAL)}</span>`,
+      `<span class="kw">const</span> <span class="op">depAnual</span>      = baseDeprec ÷ 6 = <span class="val">${fmt(DEP_ANN)}</span>`,
+      ``,
+      `<span class="cmt">// Desglose por activo:</span>`,
+      `<span class="op">HW</span>:     (${fmt(HW)} − ${fmt(HW * RES_PCT)}) ÷ 6 = <span class="val">${fmt(DEP_HW)}</span>`,
+      `<span class="op">Muebles</span>: (${fmt(MBL)} − ${fmt(MBL * RES_PCT)}) ÷ 6 = <span class="val">${fmt(DEP_MBL)}</span>`,
+    ])}
+
+    <div class="card-title" style="margin-bottom:12px;margin-top:4px">Tabla de Depreciación Completa (6 Años)</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Año</th>
+            <th>Dep. Anual</th>
+            <th>Dep. Acumulada</th>
+            <th>Valor Libro</th>
+            <th>Nota</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="font-weight:700">
+            <td>Año 0 (inicio)</td><td>—</td><td>—</td>
+            <td class="c-bl">${fmt(DEP_BASE)}</td><td></td>
+          </tr>
+          ${depRows}
+          <tr class="row-tot">
+            <td>Valor Residual recuperado</td>
+            <td colspan="2" class="muted" style="text-align:center">10% del costo original</td>
+            <td class="pos">${fmt(RESIDUAL)}</td><td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-label">Evolución del Valor Libro de los Activos (Años 0–6)</div>
+      <div style="height:180px"><canvas id="chart-dep"></canvas></div>
+    </div>
+
+    ${noteBox('note', `💡 <strong>Escudo Fiscal (Tax Shield):</strong> La depreciación es un <em>Gasto No Desembolsable (GND)</em>. Reduce el ADI → paga menos impuesto → el beneficio real = Dep. × Tasa de impuesto = ${fmt(DEP_ANN)} × 27% = <strong>${fmt(DEP_ANN * TAX)}/año</strong> ahorrado en impuestos.`)}
+
+    <div class="card-inner">
+      <div class="card-title" style="margin-bottom:10px">¿Cómo afecta al Flujo de Caja?</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.9">
+        <div>① Se <strong class="c-rd">resta</strong> la depreciación al calcular el ADI (↓ impuesto)</div>
+        <div>② Se <strong class="c-gn">suma de vuelta</strong> como ajuste GND (no es salida real de efectivo)</div>
+        <div>③ El efecto neto en caja: <strong>ahorro de impuesto = ${fmt(DEP_ANN * TAX)}/año</strong></div>
+      </div>
+    </div>
+
+    <div class="sg">
+      ${statCard('Dep. Anual Total',  fmt(DEP_ANN), 'c-rd')}
+      ${statCard('Dep. Acum. Año 5',  fmt(DEP_ANN * 5), 'c-rd')}
+      ${statCard('Valor Libro Año 5', fmt(DEP_BASE - DEP_ANN * 5), 'c-yl')}
+      ${statCard('Val. Residual',     fmt(RESIDUAL), 'c-gn', 'recuperado Año 5')}
+    </div>
+
+    ${quizHTML(3,
+      `¿Cuál es el Valor Libro de los activos al finalizar el Año 5 del horizonte de evaluación?`,
+      [fmt(DEP_BASE - DEP_ANN * 5), fmt(RESIDUAL), fmt(DEP_ANN * 5), fmt(DEP_BASE)],
+      0,
+      `VL Año 5 = ${fmt(DEP_BASE)} − (${fmt(DEP_ANN)} × 5) = ${fmt(DEP_BASE - DEP_ANN * 5)}.`
+    )}
+
+    ${navActions(true, true, 'Siguiente: Flujo de Caja →')}
+  </div>`;
+}
+
+function initChartMod3() {
+  const labels = ['Año 0','Año 1','Año 2','Año 3','Año 4','Año 5','Año 6'];
+  const books  = labels.map((_, i) => (DEP_BASE - DEP_ANN * i) / 1e6);
+  mkChart('chart-dep', {
+    type: 'line',
+    data: { labels, datasets: [{
+      label: 'Valor Libro',
+      data: books,
+      borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,.1)',
+      tension: 0.3, fill: true, pointRadius: 5, pointBackgroundColor: '#58a6ff'
+    }]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8b949e', font: { size: 10, family: "'JetBrains Mono',monospace" } } } },
+      scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(48,54,61,.7)' } },
+                y: { ticks: { color: '#8b949e', font: { size: 10 }, callback: v => `$${v}M` }, grid: { color: 'rgba(48,54,61,.7)' } } } }
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 4 — CASH FLOW
+───────────────────────────────────────────────────── */
+function renderMod4() {
+  const cfs = calcCF(state.demandPct, false, 0);
+  const flows = cfs.map(r => r.fc);
+  const npvVal = npv(flows, WACC);
+  const irrVal = irr(flows);
+  const pb = payback(cfs);
+
+  const bodyRows = `
+    <tr class="row-sh"><td colspan="7">INGRESOS Y COSTOS OPERACIONALES</td></tr>
+    <tr>
+      <td>(+) Ingresos por venta</td>
+      ${cfs.map(r => `<td class="${r.rev > 0 ? 'pos' : ''}">${r.rev ? fmtM(r.rev) : '—'}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>(−) Costos variables</td>
+      ${cfs.map(r => `<td class="${r.cv < 0 ? 'neg' : ''}">${r.cv ? fmtM(r.cv) : '—'}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>(−) Costos fijos totales</td>
+      ${cfs.map(r => `<td class="${r.cfixed < 0 ? 'neg' : ''}">${r.cfixed ? fmtM(r.cfixed) : '—'}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>(−) Depreciación (GND)</td>
+      ${cfs.map(r => `<td class="${r.dep < 0 ? 'neg' : ''}">${r.dep ? fmtM(r.dep) : '—'}</td>`).join('')}
+    </tr>
+    <tr class="row-sh"><td colspan="7">RESULTADO E IMPUESTO</td></tr>
+    <tr class="row-hl">
+      <td>(=) ADI (Antes Imp.)</td>
+      ${cfs.map(r => `<td style="color:${r.adi >= 0 ? 'var(--gn)' : 'var(--rd)'}">${r.adi !== 0 ? fmtM(r.adi) : '—'}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>(−) Impuesto 27%</td>
+      ${cfs.map(r => `<td class="${r.tax < 0 ? 'neg' : ''}">${r.tax ? fmtM(r.tax) : '$0'}</td>`).join('')}
+    </tr>
+    <tr class="row-hl">
+      <td>(=) Utilidad Neta</td>
+      ${cfs.map(r => `<td style="color:${r.net >= 0 ? 'var(--gn)' : 'var(--rd)'}">${r.net !== 0 ? fmtM(r.net) : '—'}</td>`).join('')}
+    </tr>
+    <tr class="row-sh"><td colspan="7">AJUSTES Y RECUPERACIONES</td></tr>
+    <tr>
+      <td>(+) GND — Ajuste dep.</td>
+      ${cfs.map(r => `<td class="${r.gnd > 0 ? 'pos' : ''}">${r.gnd ? fmtM(r.gnd) : '—'}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>Inversión Hardware</td>
+      ${cfs.map(r => `<td class="${r.yr === 0 ? 'neg' : r.invHw > 0 ? 'pos' : ''}">${r.yr === 0 ? fmtM(-HW) : r.invHw ? fmtM(r.invHw) : '—'}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>Inversión Muebles</td>
+      ${cfs.map(r => `<td class="${r.yr === 0 ? 'neg' : r.invMbl > 0 ? 'pos' : ''}">${r.yr === 0 ? fmtM(-MBL) : r.invMbl ? fmtM(r.invMbl) : '—'}</td>`).join('')}
+    </tr>
+    <tr>
+      <td>Capital de Trabajo</td>
+      ${cfs.map(r => `<td class="${r.yr === 0 ? 'neg' : r.ktRec > 0 ? 'pos' : ''}">${r.yr === 0 ? fmtM(-KT) : r.ktRec ? fmtM(r.ktRec) : '—'}</td>`).join('')}
+    </tr>
+    <tr class="row-sh"><td colspan="7">RESULTADO FINAL</td></tr>
+    <tr class="row-tot row-hl">
+      <td>(=) FLUJO DE CAJA (FC)</td>
+      ${cfs.map(r => `<td style="color:${r.fc >= 0 ? 'var(--gn)' : 'var(--rd)'};font-weight:700">${fmtM(r.fc)}</td>`).join('')}
+    </tr>
+    <tr class="row-tot">
+      <td>(=) FC ACUMULADO (FCA)</td>
+      ${cfs.map(r => `<td style="color:${r.fca >= 0 ? 'var(--gn)' : 'var(--rd)'};font-weight:700">${fmtM(r.fca)}</td>`).join('')}
+    </tr>`;
+
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 05 / 08</div>
+    <div class="mod-title">Flujo de <span>Caja Final</span></div>
+    <div class="mod-desc">Construye el estado de flujos completo integrando ingresos, costos, depreciación, impuestos e inversiones. Calcula los indicadores VAN, TIR y Payback para determinar la factibilidad del proyecto.</div>
+  </div>
+
+  <div class="card fade-up">
+    <div class="card-header">
+      <div class="card-icon">📊</div>
+      <div><div class="card-title">Estado de Flujos — Sin Financiamiento</div>
+        <div class="card-sub">Horizonte 5 años · WACC 15% · Impuesto 27% · Inversión propia</div></div>
+    </div>
+
+    <div class="sg">
+      ${statCard('VAN (WACC 15%)', fmtM(npvVal), npvVal > 0 ? 'c-gn' : 'c-rd', npvVal > 0 ? '✅ PROYECTO VIABLE' : '❌ NO VIABLE')}
+      ${statCard('TIR', fmtPct(irrVal), irrVal > WACC ? 'c-pu' : 'c-rd', `vs WACC ${fmtPct(WACC)}`)}
+      ${statCard('Payback', pb > 0 ? `Año ${pb}` : '> 5 años', pb > 0 && pb <= 5 ? 'c-bl' : 'c-rd')}
+      ${statCard('FC Acum. Año 5', fmtM(cfs[5].fca), cfs[5].fca >= 0 ? 'c-gn' : 'c-rd')}
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-label">Flujo de Caja Anual (FC) y Acumulado (FCA)</div>
+      <div style="height:210px"><canvas id="chart-cf"></canvas></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left;min-width:210px">Concepto</th>
+            ${cfs.map(r => `<th>Año ${r.yr}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+
+    ${noteBox(npvVal > 0 ? 'ok-note' : 'danger-note',
+      npvVal > 0
+        ? `✅ VAN = <strong>${fmtM(npvVal)}</strong> · TIR = <strong>${fmtPct(irrVal)}</strong>. El proyecto GENERA valor para NGR S.A. La TIR supera el costo de capital (WACC 15%), lo que confirma la viabilidad financiera.`
+        : `❌ VAN = <strong>${fmtM(npvVal)}</strong>. El proyecto DESTRUYE valor con los parámetros actuales. Modifica la demanda en el Módulo 01 para explorar escenarios alternativos.`
+    )}
+
+    ${quizHTML(4,
+      '¿Qué ocurre con el Flujo de Caja del Año 0 si se financia parte de la inversión con un préstamo bancario?',
+      ['Se vuelve menos negativo (aumenta)', 'Se vuelve más negativo (disminuye)', 'No cambia', 'Se elimina completamente'],
+      0,
+      'El préstamo es un ingreso de caja en el Año 0, reduciendo la inversión neta desembolsada por la empresa.'
+    )}
+
+    ${navActions(true, true, 'Siguiente: Préstamo →')}
+  </div>`;
+}
+
+function initChartMod4() {
+  const cfs = calcCF(state.demandPct, false, 0);
+  const labels = cfs.map(r => `Año ${r.yr}`);
+  const fcD  = cfs.map(r => r.fc  / 1e6);
+  const fcaD = cfs.map(r => r.fca / 1e6);
+  mkChart('chart-cf', {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'FC', data: fcD, backgroundColor: fcD.map(v => v >= 0 ? 'rgba(63,185,80,.6)' : 'rgba(248,81,73,.6)'), borderColor: fcD.map(v => v >= 0 ? '#3fb950' : '#f85149'), borderWidth: 1 },
+      { label: 'FCA', data: fcaD, type: 'line', borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,.08)', tension: .35, fill: true, pointRadius: 4, pointBackgroundColor: '#58a6ff' }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8b949e', font: { family: "'JetBrains Mono',monospace", size: 10 } } } },
+      scales: axisStyle() }
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 5 — LOAN SIMULATION
+───────────────────────────────────────────────────── */
+function renderMod5() {
+  const loanBase = HW + KT;
+  const loanAmt  = Math.round(loanBase * state.loanPct / 100);
+  const r = LOAN_R, n = 5;
+  const installment = loanAmt > 0
+    ? loanAmt * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
+    : 0;
+
+  let amort = [], bal = loanAmt;
+  for (let i = 0; i < n; i++) {
+    const interest  = bal * r;
+    const principal = installment - interest;
+    const newBal    = bal - principal;
+    amort.push({ interest, principal, installment, balance: newBal });
+    bal = newBal;
+  }
+  const totalPaid    = installment * 5;
+  const totalInterest = totalPaid - loanAmt;
+
+  const cfsLoan = calcCF(state.demandPct, state.withLoan, loanAmt);
+  const cfsBase = calcCF(state.demandPct, false, 0);
+  const npvLoan = npv(cfsLoan.map(r => r.fc), WACC);
+  const npvBase = npv(cfsBase.map(r => r.fc), WACC);
+
+  const amortRows = amort.map((a, i) => `
+    <tr>
+      <td>Año ${i + 1}</td>
+      <td class="neg">${fmt(-a.installment)}</td>
+      <td class="neg">${fmt(-a.interest)}</td>
+      <td class="neg">${fmt(-a.principal)}</td>
+      <td class="${Math.abs(a.balance) < 1 ? 'pos' : 'neg'}">${fmt(-Math.max(0, a.balance))}</td>
+    </tr>`).join('');
+
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 06 / 08</div>
+    <div class="mod-title">Simulador de <span>Préstamo</span></div>
+    <div class="mod-desc">Simula el financiamiento bancario con sistema de amortización francés (cuota fija). Analiza el impacto de la deuda en el Flujo de Caja y compara el VAN con y sin apalancamiento financiero.</div>
+  </div>
+
+  <div class="card fade-up">
+    <div class="card-header">
+      <div class="card-icon">🏦</div>
+      <div><div class="card-title">Simulador de Préstamo — Sistema Francés</div>
+        <div class="card-sub">Tasa 25% anual · 5 años · Monto máximo: ${fmt(loanBase)}</div></div>
+    </div>
+
+    <div class="input-row" style="margin-bottom:14px">
+      <span class="input-label">¿Financiar con préstamo bancario?</span>
+      <div class="toggle-group">
+        <button class="toggle-btn ${state.withLoan ? 'active' : ''}" onclick="setLoan(true)">✓ Con deuda</button>
+        <button class="toggle-btn ${!state.withLoan ? 'active' : ''}" onclick="setLoan(false)">✗ Sin deuda</button>
+      </div>
+    </div>
+
+    ${state.withLoan ? `
+    <div class="input-row" style="margin-bottom:14px">
+      <span class="input-label">% del monto máximo (${fmt(loanBase)})</span>
+      <input type="range" min="20" max="100" step="10" value="${state.loanPct}"
+        oninput="updateLoanPct(this.value)" style="width:180px">
+      <span style="font-size:12px;color:var(--gn);min-width:140px">
+        ${state.loanPct}% = <strong>${fmtM(loanAmt)}</strong>
+      </span>
+    </div>
+
+    ${codeBlock([
+      `<span class="cmt">// Fórmula Sistema Francés (cuota fija)</span>`,
+      `<span class="kw">const</span> <span class="op">P</span> = <span class="val">${fmt(loanAmt)}</span>     <span class="cmt">// monto del préstamo</span>`,
+      `<span class="kw">const</span> <span class="op">r</span> = <span class="val">0.25</span>           <span class="cmt">// tasa anual 25%</span>`,
+      `<span class="kw">const</span> <span class="op">n</span> = <span class="val">5</span>               <span class="cmt">// años</span>`,
+      `<span class="kw">const</span> <span class="op">cuota</span> = P × (r(1+r)^n) / ((1+r)^n − 1) = <span class="val">${fmt(installment)}</span>`,
+    ])}
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Año</th>
+            <th>Cuota Total</th><th>Interés</th><th>Amortización</th><th>Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="font-weight:700">
+            <td>Año 0 (desembolso)</td>
+            <td class="pos">${fmt(loanAmt)}</td><td>—</td><td>—</td>
+            <td class="neg">${fmt(-loanAmt)}</td>
+          </tr>
+          ${amortRows}
+          <tr class="row-tot">
+            <td>TOTAL PAGADO</td>
+            <td class="neg">${fmt(-totalPaid)}</td>
+            <td class="neg">${fmt(-totalInterest)}</td>
+            <td class="neg">${fmt(-loanAmt)}</td><td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-label">Composición de la Cuota Anual: Interés vs. Amortización</div>
+      <div style="height:180px"><canvas id="chart-loan"></canvas></div>
+    </div>
+    ` : noteBox('note', '💡 En el modo "Sin Deuda", la empresa financia la inversión total de ' + fmt(HW + MBL + KT) + ' con capital propio. El Año 0 tiene un desembolso neto de ' + fmt(-(HW + MBL + KT)) + '.')}
+
+    <div class="sg" style="margin-top:14px">
+      ${statCard('VAN Sin Deuda', fmtM(npvBase), 'c-bl')}
+      ${statCard('VAN Con Deuda', fmtM(npvLoan), npvLoan > npvBase ? 'c-gn' : 'c-rd', npvLoan > npvBase ? '↑ mejora' : '↓ empeora')}
+      ${statCard('Δ VAN', fmtM(npvLoan - npvBase), (npvLoan - npvBase) >= 0 ? 'c-gn' : 'c-rd')}
+      ${state.withLoan ? statCard('Costo Total Intereses', fmt(totalInterest), 'c-rd') : statCard('Inversión Neta', fmt(HW + MBL + KT), 'c-yl')}
+    </div>
+
+    ${noteBox('warn', '⚠️ En este modelo educativo, los intereses se aplican <strong>después</strong> del ADI. En evaluación financiera avanzada, los intereses reducen la base imponible antes de impuestos (EBIT → EBT), generando un escudo fiscal adicional sobre la deuda.')}
+
+    ${quizHTML(5,
+      `Con un préstamo de ${fmtM(loanBase)} al 25% anual a 5 años (sistema francés), ¿qué sucede con el saldo de la deuda con el tiempo?`,
+      ['Permanece constante cada año', 'Aumenta por efecto del interés compuesto', 'Disminuye cada año (se amortiza progresivamente)', 'Desaparece al final del segundo año'],
+      2,
+      'En el sistema francés, la cuota es fija, pero la proporción de amortización crece y la de interés disminuye a medida que se reduce el saldo.'
+    )}
+
+    ${navActions(true, true, 'Siguiente: Sensibilidad →')}
+  </div>`;
+}
+
+function initChartMod5() {
+  const loanBase = HW + KT;
+  const loanAmt  = Math.round(loanBase * state.loanPct / 100);
+  if (!state.withLoan || loanAmt === 0) return;
+  const r = LOAN_R, n = 5;
+  const installment = loanAmt * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  let bal = loanAmt;
+  const interests = [], principals = [], labels = [];
+  for (let i = 1; i <= n; i++) {
+    const interest  = bal * r;
+    const principal = installment - interest;
+    interests.push(interest / 1e6);
+    principals.push(principal / 1e6);
+    labels.push(`Año ${i}`);
+    bal -= principal;
+  }
+  mkChart('chart-loan', {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Interés', data: interests, backgroundColor: 'rgba(248,81,73,.6)', borderColor: '#f85149', borderWidth: 1 },
+      { label: 'Amortización', data: principals, backgroundColor: 'rgba(63,185,80,.6)', borderColor: '#3fb950', borderWidth: 1 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, stacked: true,
+      plugins: { legend: { labels: { color: '#8b949e', font: { size: 10 } } } },
+      scales: { x: { stacked: true, ticks: { color: '#8b949e' }, grid: { color: 'rgba(48,54,61,.7)' } },
+                y: { stacked: true, ticks: { color: '#8b949e', callback: v => `$${v.toFixed(1)}M` }, grid: { color: 'rgba(48,54,61,.7)' } } } }
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 6 — SENSITIVITY
+───────────────────────────────────────────────────── */
+const SCENARIOS = [
+  { id: 'base',   label: 'Base',        icon: '⚖️',  cls: 'base',   desc: 'Demanda original del caso NGR S.A.',           pcts: [.5,.7,.8,.9,1.0], cfMult: 1.0 },
+  { id: 'opt',    label: 'Optimista',   icon: '📈',  cls: 'opt',    desc: 'Demanda +10%, costos nominales',               pcts: [.6,.8,.9,1.0,1.0], cfMult: 0.9 },
+  { id: 'pess',   label: 'Pesimista',   icon: '📉',  cls: 'pess',   desc: 'Demanda −20%, costos +15%',                   pcts: [.3,.5,.6,.7,.8], cfMult: 1.15 },
+  { id: 'stress', label: 'Stress Test', icon: '🚨',  cls: 'stress', desc: 'Demanda plana 40% todo el período',            pcts: [.4,.4,.4,.4,.4], cfMult: 1.20 },
+];
+
+function scenariosNPV() {
+  return SCENARIOS.map(s => {
+    const cfs = calcCF(s.pcts, false, 0);
+    const flows = cfs.map((r, i) => i === 0 ? r.fc : r.fc - (r.cfixed * (s.cfMult - 1)));
+    return npv(flows, WACC) / 1e6;
+  });
+}
+
+function renderMod6() {
+  const sc   = SCENARIOS.find(s => s.id === state.scenario);
+  const cfs  = calcCF(sc.pcts, false, 0);
+  const flows = cfs.map((r, i) => i === 0 ? r.fc : r.fc - (r.cfixed * (sc.cfMult - 1)));
+  const npvVal = npv(flows, WACC);
+  const irrVal = irr(flows);
+  const pb     = payback(cfs);
+
+  const scCards = SCENARIOS.map(s => `
+    <div class="scenario-card ${state.scenario === s.id ? `sel-${s.cls}` : ''}"
+      onclick="selectScenario('${s.id}')">
+      <div class="sc-icon">${s.icon}</div>
+      <div class="sc-name">${s.label}</div>
+      <div class="sc-desc">${s.desc}</div>
+      <div style="font-size:10px;margin-top:8px;color:var(--tx2)">
+        Año 1: <span style="color:var(--gn)">${Math.round(s.pcts[0] * 100)}%</span> cap. |
+        CF mult.: <span style="color:var(--yl)">×${s.cfMult}</span>
+      </div>
+    </div>`).join('');
+
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 07 / 08</div>
+    <div class="mod-title">Análisis de <span>Sensibilidad</span></div>
+    <div class="mod-desc">Evalúa cómo cambia la factibilidad del proyecto ante distintas condiciones de mercado. Un proyecto robusto mantiene VAN positivo incluso bajo escenarios adversos.</div>
+  </div>
+
+  <div class="card fade-up">
+    <div class="card-header">
+      <div class="card-icon">🎛</div>
+      <div><div class="card-title">Simulador de Escenarios</div>
+        <div class="card-sub">Selecciona un escenario para ver su impacto financiero</div></div>
+    </div>
+
+    <div class="scenario-grid">${scCards}</div>
+
+    <div class="sg">
+      ${statCard(`VAN · ${sc.label}`, fmtM(npvVal), npvVal > 0 ? 'c-gn' : 'c-rd', npvVal > 0 ? '✅ Viable' : '❌ No viable')}
+      ${statCard('TIR', fmtPct(irrVal), irrVal > WACC ? 'c-pu' : 'c-rd', `vs WACC ${fmtPct(WACC)}`)}
+      ${statCard('Payback', pb > 0 ? `Año ${pb}` : '> 5 años', pb > 0 && pb <= 5 ? 'c-bl' : 'c-rd')}
+      ${statCard('FC Acum. Año 5', fmtM(cfs[5].fca), cfs[5].fca >= 0 ? 'c-gn' : 'c-rd')}
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-label">Comparación de VAN por Escenario (millones $CLP)</div>
+      <div style="height:190px"><canvas id="chart-sens"></canvas></div>
+    </div>
+
+    <div class="card-inner">
+      <div class="card-title" style="margin-bottom:10px">Proyección de Demanda — Escenario: ${sc.label}</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th style="text-align:left">Año</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead>
+          <tbody>
+            <tr><td>% Cap.</td>${sc.pcts.map(p => `<td>${Math.round(p * 100)}%</td>`).join('')}</tr>
+            <tr class="row-hl"><td>Proyectos</td>${sc.pcts.map(p => `<td class="pos">${Math.round(CAP * p)}</td>`).join('')}</tr>
+            <tr><td>Ingresos</td>${sc.pcts.map(p => `<td class="c-bl">${fmtM(Math.round(CAP * p) * PV_UNIT)}</td>`).join('')}</tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    ${noteBox('note', `💡 <strong>Interpretación:</strong> Si el VAN sigue positivo en el escenario Pesimista, el proyecto tiene <em>margen de seguridad</em>. Si se vuelve negativo, la empresa debe negociar reducción de costos o mayor diferenciación de precios antes de comprometer la inversión.`)}
+
+    ${quizHTML(6,
+      '¿Qué indicador mide la tasa de retorno que hace que el VAN sea exactamente igual a cero?',
+      ['WACC (Costo Ponderado de Capital)', 'TIR (Tasa Interna de Retorno)', 'Payback (Período de Recuperación)', 'ROI (Retorno sobre Inversión)'],
+      1,
+      'La TIR es la tasa que hace VAN = 0. Si TIR > WACC, el proyecto crea valor y es financieramente viable.'
+    )}
+
+    ${navActions(true, true, 'Siguiente: Resumen →')}
+  </div>`;
+}
+
+function initChartMod6() {
+  const npvs  = scenariosNPV();
+  const labels = SCENARIOS.map(s => s.label);
+  const colors = npvs.map(v => v > 0 ? 'rgba(63,185,80,.6)' : 'rgba(248,81,73,.6)');
+  const borders= npvs.map(v => v > 0 ? '#3fb950' : '#f85149');
+  mkChart('chart-sens', {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'VAN ($M)', data: npvs, backgroundColor: colors, borderColor: borders, borderWidth: 1 }]},
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { color: '#8b949e', font: { size: 11 } }, grid: { color: 'rgba(48,54,61,.7)' } },
+                x: { ticks: { color: '#8b949e', callback: v => `$${v}M` }, grid: { color: 'rgba(48,54,61,.7)' } } } }
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   MODULE 7 — EXECUTIVE SUMMARY
+───────────────────────────────────────────────────── */
+function renderMod7() {
+  const cfs    = calcCF(state.demandPct, false, 0);
+  const flows  = cfs.map(r => r.fc);
+  const npvVal = npv(flows, WACC);
+  const irrVal = irr(flows);
+  const pb     = payback(cfs);
+  const viable = npvVal > 0 && irrVal > WACC && pb > 0 && pb <= 5;
+
+  const ptoEq  = Math.ceil(CF_TOTAL / (PV_UNIT - CV_UNIT));
+
+  const criteria = [
+    { label: 'VAN > 0', val: fmtM(npvVal), pass: npvVal > 0,         desc: 'Genera valor sobre el costo de capital (WACC 15%)', icon: '📈' },
+    { label: 'TIR > WACC (15%)', val: fmtPct(irrVal), pass: irrVal > WACC, desc: 'El retorno supera la exigencia mínima del inversionista', icon: '💹' },
+    { label: 'Payback ≤ 5 años', val: pb > 0 ? `Año ${pb}` : '> 5 años', pass: pb > 0 && pb <= 5, desc: 'Recuperación de la inversión dentro del horizonte', icon: '⏱' },
+    { label: 'FCA Año 5 > 0', val: fmtM(cfs[5].fca), pass: cfs[5].fca >= 0, desc: 'Saldo de caja acumulado positivo al cierre del período', icon: '💰' },
+  ];
+
+  const criteriaRows = criteria.map(c => `
+    <div class="criteria-row">
+      <div class="criteria-icon">${c.icon}</div>
+      <div class="criteria-info">
+        <div class="criteria-name">${c.label}</div>
+        <div class="criteria-desc">${c.desc}</div>
+      </div>
+      <div class="criteria-val ${c.pass ? 'c-gn' : 'c-rd'}">${c.val}</div>
+      <div class="criteria-verdict">
+        <span class="badge ${c.pass ? 'badge-gn' : 'badge-rd'}">${c.pass ? '✓ CUMPLE' : '✗ NO CUMPLE'}</span>
+      </div>
+    </div>`).join('');
+
+  // Small FC summary table
+  const fcSummary = cfs.map(r => `
+    <tr>
+      <td>Año ${r.yr}</td>
+      <td class="${r.fc >= 0 ? 'pos' : 'neg'}">${fmtM(r.fc)}</td>
+      <td class="${r.fca >= 0 ? 'pos' : 'neg'}">${fmtM(r.fca)}</td>
+    </tr>`).join('');
+
+  return `
+  <div class="mod-banner fade-up">
+    <div class="mod-num">MÓDULO 08 / 08</div>
+    <div class="mod-title">Resumen <span>Ejecutivo</span></div>
+    <div class="mod-desc">Síntesis integral del análisis de factibilidad económica de NGR S.A. Evalúa los criterios de inversión, presenta conclusiones y recomendaciones estratégicas para la toma de decisiones.</div>
+  </div>
+
+  <div class="card fade-up">
+    <!-- VERDICT -->
+    <div class="verdict-banner ${viable ? 'viable' : 'no-viable'}">
+      <span class="verdict-emoji">${viable ? '✅' : '❌'}</span>
+      <div class="verdict-text" style="color:${viable ? 'var(--gn)' : 'var(--rd)'}">
+        PROYECTO ${viable ? 'VIABLE' : 'NO VIABLE'}
+      </div>
+      <div class="verdict-sub">
+        NGR S.A. — Unidad de Negocio: Implementación de Proyectos Tecnológicos<br>
+        Análisis financiero · Horizonte 5 años · ${new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' })}
+      </div>
+    </div>
+
+    <!-- CRITERIA TABLE -->
+    <div class="card-inner">
+      <div class="card-title" style="margin-bottom:14px">Criterios de Factibilidad Económica</div>
+      ${criteriaRows}
+    </div>
+
+    <!-- KPI GRID -->
+    <div class="sg">
+      ${statCard('Inversión Total Año 0',  fmt(HW + MBL + KT), 'c-rd')}
+      ${statCard('VAN al 15%',             fmtM(npvVal), npvVal > 0 ? 'c-gn' : 'c-rd')}
+      ${statCard('TIR',                    fmtPct(irrVal), 'c-pu')}
+      ${statCard('Payback',                pb > 0 ? `Año ${pb}` : '> 5 años', pb > 0 ? 'c-bl' : 'c-rd')}
+      ${statCard('Ingreso Año 5',          fmtM(Math.round(CAP * state.demandPct[4]) * PV_UNIT), 'c-gn')}
+      ${statCard('Dep. Anual (GND)',        fmt(DEP_ANN), 'c-yl')}
+      ${statCard('Punto de Equilibrio',    `${ptoEq} proy/año`, 'c-or')}
+      ${statCard('Préstamo Disponible',     fmt(HW + KT), 'c-bl')}
+    </div>
+
+    <!-- FC SUMMARY -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div>
+        <div class="card-title" style="margin-bottom:10px;font-size:10px">Resumen Flujo de Caja</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th style="text-align:left">Año</th><th>FC</th><th>FCA</th></tr></thead>
+            <tbody>${fcSummary}</tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="chart-wrap" style="height:100%;display:flex;flex-direction:column">
+          <div class="chart-label">FC vs FCA</div>
+          <div style="flex:1;min-height:160px"><canvas id="chart-sum"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCLUSIONS -->
+    <div class="card-inner">
+      <div class="card-title" style="margin-bottom:12px">Conclusiones y Recomendaciones</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:2">
+        <p style="margin-bottom:10px">
+          ${viable
+            ? `✅ La nueva unidad de negocio <strong>"Implementación de Proyectos Tecnológicos"</strong> de NGR S.A. es <strong>financieramente viable</strong>. El VAN de <strong class="c-gn">${fmtM(npvVal)}</strong> indica que el proyecto genera valor superior al costo de capital del 15%.`
+            : `❌ Con los parámetros actuales de demanda, el proyecto <strong>no cumple</strong> los criterios mínimos de factibilidad. Se requiere aumentar la demanda proyectada o reducir costos operacionales.`
+          }
+        </p>
+        <p style="margin-bottom:10px">
+          📌 <strong>Inversión principal:</strong> El hardware (${fmt(HW)}) representa el <strong>${Math.round(HW / (HW + MBL + KT) * 100)}%</strong> de la inversión total. Se recomienda evaluar alternativas de <em>leasing tecnológico</em> o <em>cloud computing</em> para reducir el desembolso inicial y mejorar la flexibilidad operacional.
+        </p>
+        <p style="margin-bottom:10px">
+          💡 <strong>Punto de equilibrio operativo:</strong> Se requieren al menos <strong class="c-or">${ptoEq} proyectos/año</strong> para cubrir todos los costos fijos. El proyecto supera este umbral desde el Año 1 (${u(0)} proyectos), lo que da <em>margen de seguridad operacional</em> desde el inicio.
+        </p>
+        <p>
+          🏦 <strong>Financiamiento:</strong> El préstamo de ${fmt(HW + KT)} al 25% anual puede <em>mejorar o empeorar</em> el VAN según el efecto del escudo fiscal. En el modelo sin deuda, la empresa asume mayor riesgo financiero pero no paga intereses. Se recomienda evaluar ambas estructuras con un asesor financiero.
+        </p>
+      </div>
+    </div>
+
+    ${noteBox('ok-note', `🎓 <strong>¡Felicitaciones!</strong> Completaste los 8 módulos del análisis de factibilidad económica de NGR S.A. Tu informe cubre: inversión inicial, proyección de ingresos, depreciación lineal, flujo de caja, simulación de deuda, análisis de sensibilidad y criterios de evaluación. ¡Listo para presentar!`)}
+
+    <div class="nav-actions">
+      <button class="btn btn-sec" onclick="goTo(6)">← Anterior</button>
+      <button class="btn btn-pu" onclick="window.print()">🖨 Imprimir Informe</button>
+    </div>
+  </div>`;
+}
+
+function initChartMod7() {
+  const cfs  = calcCF(state.demandPct, false, 0);
+  const labels = cfs.map(r => `Año ${r.yr}`);
+  const fcD  = cfs.map(r => r.fc  / 1e6);
+  const fcaD = cfs.map(r => r.fca / 1e6);
+  mkChart('chart-sum', {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'FC', data: fcD, backgroundColor: fcD.map(v => v >= 0 ? 'rgba(63,185,80,.6)' : 'rgba(248,81,73,.6)'), borderColor: fcD.map(v => v >= 0 ? '#3fb950' : '#f85149'), borderWidth: 1 },
+      { label: 'FCA', data: fcaD, type: 'line', borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,.08)', tension: .35, fill: true, pointRadius: 3, pointBackgroundColor: '#58a6ff' }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8b949e', font: { size: 9 } } } },
+      scales: { x: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: 'rgba(48,54,61,.7)' } },
+                y: { ticks: { color: '#8b949e', font: { size: 9 }, callback: v => `$${v}M` }, grid: { color: 'rgba(48,54,61,.7)' } } } }
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   ROUTER
+───────────────────────────────────────────────────── */
+const MOD_RENDERERS = [
+  { render: renderMod0, chart: null },
+  { render: renderMod1, chart: null },
+  { render: renderMod2, chart: initChartMod2 },
+  { render: renderMod3, chart: initChartMod3 },
+  { render: renderMod4, chart: initChartMod4 },
+  { render: renderMod5, chart: initChartMod5 },
+  { render: renderMod6, chart: initChartMod6 },
+  { render: renderMod7, chart: initChartMod7 },
+];
+
+function render() {
+  // Destroy old charts
+  Object.keys(charts).forEach(k => destroyChart(k));
+
+  const main = document.getElementById('main');
+  const m = MOD_RENDERERS[state.module];
+  main.innerHTML = m.render();
+
+  // Init charts async to allow DOM paint
+  if (m.chart) requestAnimationFrame(() => m.chart());
+
+  renderSidebar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ─────────────────────────────────────────────────────
+   ACTIONS
+───────────────────────────────────────────────────── */
+function goTo(mod) {
+  if (mod < 0 || mod > 7) return;
+  state.done.add(state.module);
+  state.module = mod;
+  render();
+}
+
+function updateDemand(idx, val) {
+  state.demandPct[idx] = Math.max(0.1, Math.min(1.0, +val / 100));
+  render();
+}
+
+function answerQuiz(modId, ansIdx, correct) {
+  state.quizAnswers[modId] = ansIdx;
+  render();
+}
+
+function setLoan(val) {
+  state.withLoan = val;
+  render();
+}
+
+function updateLoanPct(val) {
+  state.loanPct = +val;
+  render();
+}
+
+function selectScenario(id) {
+  state.scenario = id;
+  render();
+}
+
+/* ─────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────── */
+render();
+</script>
+</body>
+</html>
